@@ -107,9 +107,10 @@ Vue.createApp({
       menu: [],          // 從 API 載入
       loading: true,     // 載入狀態
       activeCategory: '全部',
-      cart: [],   // [{ id, name, emoji, price, qty }]
-
-      menu: [
+      cart: [],          // [{ id, name, emoji, price, qty }]
+      tableNumber: '',   // 桌號
+      note: '',          // 備註
+      defaultMenu: [
         { id: 1, category: '麵飯', emoji: '🍜', name: '滷肉飯',  price: 50  },
         { id: 2, category: '麵飯', emoji: '🍝', name: '乾麵',    price: 55  },
         { id: 3, category: '麵飯', emoji: '🍲', name: '牛肉麵',  price: 130 },
@@ -153,8 +154,11 @@ Vue.createApp({
 
     // 送出訂單
     placeOrder() {
-      alert('訂單已送出！合計 $' + this.totalAmount)
-      this.cart = []   // 清空購物車
+      if (this.cart.length === 0) {
+        alert('購物車是空的！')
+        return
+      }
+      this.submitOrder()
     },
 
     // 載入菜單
@@ -172,22 +176,31 @@ Vue.createApp({
       }
     },
 
-    // 送出訂單
+    // 送出訂單到試算表
     async submitOrder() {
-      const res = await fetch(this.apiUrl, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'submitOrder',
-          tableNumber: this.tableNumber,
-          items: this.orderItems,
-          totalAmount: this.totalAmount,
-          note: this.note,
+      try {
+        const res = await fetch(this.apiUrl, {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'submitOrder',
+            tableNumber: this.tableNumber,
+            items: this.cart,
+            totalAmount: this.totalAmount,
+            note: this.note,
+          })
         })
-      })
-      const data = await res.json()
-      if (data.success) {
-        alert('訂單送出成功！編號：' + data.data.orderId)
-        this.cart = []
+        const data = await res.json()
+        if (data.success) {
+          alert('訂單送出成功！編號：' + data.data.orderId)
+          this.cart = []
+          this.tableNumber = ''
+          this.note = ''
+        } else {
+          alert('訂單送出失敗：' + (data.message || '未知錯誤'))
+        }
+      } catch (e) {
+        console.error('訂單送出錯誤', e)
+        alert('訂單送出出錯：' + e.message)
       }
     }
   },
